@@ -51,9 +51,6 @@ app.use((req, res) => {
 })
 
 // ===== Vercel serverless handler =====
-// IMPORTANT: Do not use app.listen() in serverless.
-// Expose a request handler compatible with @vercel/node.
-
 let dbInitPromise
 const ensureDB = async () => {
   if (!dbInitPromise) {
@@ -68,7 +65,6 @@ export default async function handler(req, res) {
     return app(req, res)
   } catch (err) {
     console.error('Serverless handler error:', err)
-    // Still respond deterministically so UI doesn't show crashed function.
     return res.status(500).json({
       success: false,
       message: 'Server error'
@@ -77,7 +73,6 @@ export default async function handler(req, res) {
 }
 
 // ===== Local dev fallback =====
-// When running `node server.mjs` locally, start a server.
 if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
   const port = process.env.PORT ? Number(process.env.PORT) : 3000
   connectDB()
