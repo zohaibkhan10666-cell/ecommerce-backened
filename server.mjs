@@ -29,7 +29,7 @@ app.use('/api/v1/admin', adminRoutes)
 app.use('/api/v1/orders', orderRoutes)
 app.use('/api/v1/orders/jazzcash', jazzcashRoutes)
 
-// Debug: show mounted endpoints
+// Debug: show mounted endpoints (visible in server logs)
 console.log('[ROUTES] /api/v1/orders mounted from backened/routes/orderRoutes.js')
 console.log('[ROUTES] /api/v1/orders/jazzcash mounted from backened/routes/jazzcashRoutes.js')
 console.log('[ROUTES DEBUG] Expect:')
@@ -53,9 +53,7 @@ app.use((req, res) => {
 // ===== Vercel serverless handler =====
 let dbInitPromise
 const ensureDB = async () => {
-  if (!dbInitPromise) {
-    dbInitPromise = connectDB()
-  }
+  if (!dbInitPromise) dbInitPromise = connectDB()
   return dbInitPromise
 }
 
@@ -65,14 +63,11 @@ export default async function handler(req, res) {
     return app(req, res)
   } catch (err) {
     console.error('Serverless handler error:', err)
-    return res.status(500).json({
-      success: false,
-      message: 'Server error'
-    })
+    return res.status(500).json({ success: false, message: 'Server error' })
   }
 }
 
-// ===== Local dev fallback =====
+// ===== Local dev fallback (when not on Vercel) =====
 if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
   const port = process.env.PORT ? Number(process.env.PORT) : 3000
   connectDB()
