@@ -1,4 +1,6 @@
 import Product from '../models/productModel.js';
+import mongoose from 'mongoose';
+import sampleProducts from '../sampleProducts.js';
 
 // Get all products with filtering, sorting, pagination - FIXED: timeouts, sequential queries
 export const getProducts = async (req, res) => {
@@ -85,6 +87,18 @@ export const getProducts = async (req, res) => {
         const skip = (pageNum - 1) * limitNum;
 
         // SEQUENTIAL QUERIES WITH TIMEOUTS (fix parallel timeout)
+        // If DB is not connected, return sample fallback data
+        if (mongoose.connection.readyState !== 1) {
+            console.warn('MongoDB not connected - returning sample products fallback');
+            const fallback = sampleProducts.filter(p => p.isActive);
+            return res.status(200).json({
+                success: true,
+                products: fallback,
+                pagination: { page: 1, limit: fallback.length, total: fallback.length, pages: 1 },
+                filters: { categories: [...new Set(fallback.map(p=>p.category))], brands: [...new Set(fallback.map(p=>p.brand))], minPrice: Math.min(...fallback.map(p=>p.price)), maxPrice: Math.max(...fallback.map(p=>p.price)) }
+            });
+        }
+
         const products = await Product.find(query)
             .sort(sort)
             .skip(skip)
@@ -134,27 +148,26 @@ export const getProducts = async (req, res) => {
 export const getProductById = async (req, res) => {
     try {
         const { id } = req.params;
+        // Fallback to sample data when DB is not connected
+        if (mongoose.connection.readyState !== 1) {
+            const product = sampleProducts.find(p => p._id === id || p.id === id || String(p._id) === id || p.name === id);
+            if (!product) {
+                return res.status(404).json({ success: false, message: "Product not found" });
+            }
+            const relatedProducts = sampleProducts.filter(p => p.category === product.category && p.name !== product.name).slice(0, 4);
+            return res.status(200).json({ success: true, product, relatedProducts });
+        }
+
         const product = await Product.findById(id);
 
         if (!product) {
-            return res.status(404).json({
-                success: false,
-                message: "Product not found"
-            });
+            return res.status(404).json({ success: false, message: "Product not found" });
         }
 
         // Get related products (same category)
-        const relatedProducts = await Product.find({
-            category: product.category,
-            _id: { $ne: product._id },
-            isActive: true
-        }).limit(4);
+        const relatedProducts = await Product.find({ category: product.category, _id: { $ne: product._id }, isActive: true }).limit(4);
 
-        res.status(200).json({
-            success: true,
-            product,
-            relatedProducts
-        });
+        res.status(200).json({ success: true, product, relatedProducts });
     } catch (error) {
         console.error('Get product error:', error);
         res.status(500).json({
@@ -168,14 +181,14 @@ export const getProductById = async (req, res) => {
 // Get featured products
 export const getFeaturedProducts = async (req, res) => {
     try {
-        const products = await Product.find({ isActive: true, isFeatured: true })
-            .sort({ rating: -1, reviewCount: -1 })
-            .limit(8);
+        if (mongoose.connection.readyState !== 1) {
+            const products = sampleProducts.filter(p => p.isActive && p.isFeatured).slice(0, 8);
+            return res.status(200).json({ success: true, products });
+        }
 
-        res.status(200).json({
-            success: true,
-            products
-        });
+        const products = await Product.find({ isActive: true, isFeatured: true }).sort({ rating: -1, reviewCount: -1 }).limit(8);
+
+        res.status(200).json({ success: true, products });
     } catch (error) {
         console.error('Get featured products error:', error);
         res.status(500).json({
