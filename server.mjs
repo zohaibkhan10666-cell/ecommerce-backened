@@ -57,13 +57,31 @@ const ensureDB = async () => {
   return dbInitPromise
 }
 
+// Vercel will always call this file for requests that match vercel.json routing.
+// Use express-style handler but keep it resilient in serverless.
 export default async function handler(req, res) {
   try {
-    await ensureDB()
-    return app(req, res)
+    // Start DB connection in background without blocking the request.
+    // This prevents timeout errors in Vercel's serverless environment.
+    // Controllers have fallback sample data when DB is unavailable.
+    ensureDB().catch(err => {
+      console.error('Serverless DB init (non-blocking):', err.message)
+    })
+
+    // Validate response object
+    if (!res || typeof res.status !== 'function') {
+      throw new TypeError('Invalid response object provided to handler')
+    }
+
+    // Delegate to Express app - handles routing and sends response
+    app(req, res)
   } catch (err) {
     console.error('Serverless handler error:', err)
-    return res.status(500).json({ success: false, message: 'Server error' })
+
+    // Send error response if not already sent
+    if (res && typeof res.status === 'function' && !res.headersSent) {
+      res.status(500).json({ success: false, message: err?.message || 'Server error' })
+    }
   }
 }
 
