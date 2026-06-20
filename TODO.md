@@ -1,9 +1,11 @@
-# Backend TODO - env & server fixes
+# TODO - Fix Vercel API Fetch Issue
 
-- [ ] Make auth use a single JWT secret env var (JWT_SECRET / SECRET_KEY) consistently.
-- [ ] Fix order route/payment to rely on correct req.id + req.user from isAuthenticated.
-- [ ] Ensure JazzCash env vars exist (JAZZCASH_MERCHANT_ID, JAZZCASH_PASSWORD, JAZZCASH_INTEGRITY_SALT, JAZZCASH_RETURN_URL) or provide safe fallback.
-- [ ] Align PM2 ecosystem PORT in ecosystem.config.cjs with desired PORT=8000.
-- [ ] Ensure server uses correct dotenv path and does not crash if env missing.
-- [ ] Validate server boots with: `node server.mjs` and then test `GET /test-email`.
+- [ ] Identify why Vercel serverless `/api/v1/*` fails (Express adapter / routing mismatch).
+- [ ] Fix Vercel handler so it uses a Vercel/Node-compatible adapter for Express (no `res.setHeader is not a function`).
+- [ ] Ensure Vercel routes map to the correct handler (`vercel.json`).
+- [ ] Add a minimal health endpoint (optional) to confirm handler is invoked on Vercel.
+- [ ] Verify locally with `npx vercel dev` once authentication + runtime works.
+- [ ] Fix MongoDB buffering timeout by failing fast when DB isn’t connected (or allow fallback) so endpoints return meaningful errors.
+- [ ] Commit changes on a `blackboxai/*` branch.
+- [ ] Push changes to GitHub repo: https://github.com/zohaibkhan10666-cell/ecommerce-backened.git
 
