@@ -13,8 +13,12 @@ import path from 'path'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Load env from backened/.env (safe default for local dev)
-dotenv.config({ path: process.env.DOTENV_PATH || path.join(__dirname, '.env') })
+// Load env from backened/.env ONLY for local development.
+// On Vercel, env vars are provided via Vercel settings and reading .env files is not allowed.
+if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
+  dotenv.config({ path: process.env.DOTENV_PATH || path.join(__dirname, '.env') })
+}
+
 
 const app = express()
 
