@@ -1,9 +1,15 @@
 {
   "version": 2,
-  "routes": [
-    { "src": "/api/v1/(.*)", "dest": "/api/index.mjs" },
-    { "src": "/api/(.*)", "dest": "/api/index.mjs" },
-    { "src": "\/(.*)", "dest": "/api/index.mjs" }
+  "builds": [
+    {
+          "src": "server.mjs",
+          "use": "@vercel/node"
+    }
+  ],
+  "routes":[
+    {
+      "src": "/(.*)",
+      "dest": "server.mjs"
+    }
   ]
 }
-
