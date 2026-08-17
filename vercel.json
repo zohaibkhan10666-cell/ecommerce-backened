@@ -2,10 +2,16 @@
   "version": 2,
   "builds": [
     {
-          "src": "server.mjs",
-          "use": "@vercel/node"
+      "src": "server.mjs",
+      "use": "@vercel/node"
     }
   ],
+  "functions": {
+    "server.mjs": {
+      "runtime": "nodejs18.x",
+      "maxDuration": 10
+    }
+  },
   "routes":[
     {
       "src": "/(.*)",
