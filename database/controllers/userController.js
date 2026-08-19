@@ -1,6 +1,6 @@
 import User from '../models/userModel.js'
 import { Session } from '../models/sessionModel.js'
-import bcrypt from 'bcrypt'
+import { hashPassword, comparePassword } from '../../utils/hash.js'
 import jwt from 'jsonwebtoken'
 import { sendOTPEmail } from '../../utils/emailService.js'
 import dotenv from 'dotenv'
@@ -21,7 +21,7 @@ export const register = async (req, res) => {
             return res.status(400).json({ message: "User already exists", success: false })
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10)
+        const hashedPassword = await hashPassword(password)
         const otp = Math.floor(10000 + Math.random() * 90000).toString()
         const otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
 
@@ -121,7 +121,7 @@ export const login = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: "User not found", success: false })
         }
-        const isPasswordValid = await bcrypt.compare(password, user.password)
+        const isPasswordValid = await comparePassword(password, user.password)
         if (!isPasswordValid) {
             return res.status(400).json({ message: "Invalid credentials", success: false })
         }
@@ -215,7 +215,7 @@ export const resetPassword = async (req, res) => {
             return res.status(400).json({ success: false, message: "OTP expired" })
         }
 
-        const hashedPassword = await bcrypt.hash(newPassword, 10)
+        const hashedPassword = await hashPassword(newPassword)
         user.password = hashedPassword
         user.otp = null
         user.otpExpiry = null
@@ -367,7 +367,7 @@ export const changePassword = async (req, res) => {
             return res.status(400).json({ success: false, message: "Passwords do not match" })
         }
 
-        const hashedPassword = await bcrypt.hash(newPassword, 10)
+        const hashedPassword = await hashPassword(newPassword)
         user.password = hashedPassword
         await user.save()
 
