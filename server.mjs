@@ -19,7 +19,6 @@ if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
   dotenv.config({ path: process.env.DOTENV_PATH || path.join(__dirname, '.env') })
 }
 
-
 const app = express()
 
 app.use(express.json({ limit: '50mb' }))
@@ -54,40 +53,20 @@ app.use((req, res) => {
   })
 })
 
-// ===== Vercel serverless handler =====
+// ===== DB init helper (non-blocking) =====
 let dbInitPromise
 const ensureDB = async () => {
   if (!dbInitPromise) dbInitPromise = connectDB()
   return dbInitPromise
 }
 
-// Vercel will always call this file for requests that match vercel.json routing.
-// Use express-style handler but keep it resilient in serverless.
-export default async function handler(req, res) {
-  try {
-    // Start DB connection in background without blocking the request.
-    // This prevents timeout errors in Vercel's serverless environment.
-    // Controllers have fallback sample data when DB is unavailable.
-    ensureDB().catch(err => {
-      console.error('Serverless DB init (non-blocking):', err.message)
-    })
+// Start DB init in background (non-blocking) so cold starts prime the connection
+ensureDB().catch(err => {
+  console.error('Startup DB init (non-blocking):', err?.message || err)
+})
 
-    // Validate response object
-    if (!res || typeof res.status !== 'function') {
-      throw new TypeError('Invalid response object provided to handler')
-    }
-
-    // Delegate to Express app - handles routing and sends response
-    app(req, res)
-  } catch (err) {
-    console.error('Serverless handler error:', err)
-
-    // Send error response if not already sent
-    if (res && typeof res.status === 'function' && !res.headersSent) {
-      res.status(500).json({ success: false, message: err?.message || 'Server error' })
-    }
-  }
-}
+// ===== Export Express app directly for Vercel Node builder =====
+export default app
 
 // ===== Local dev fallback (when not on Vercel) =====
 if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
@@ -101,4 +80,3 @@ if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
       })
     })
 }
-
